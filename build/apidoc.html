@@ -1,0 +1,671 @@
+<div class="apidocDiv">
+<style>
+/*csslint
+*/
+.apidocDiv {
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.apidocDiv a[href] {
+    color: #33f;
+    font-weight: bold;
+    text-decoration: none;
+}
+.apidocDiv a[href]:hover {
+    text-decoration: underline;
+}
+.apidocCodeCommentSpan {
+    background: #bbf;
+    color: #000;
+    display: block;
+}
+.apidocCodeKeywordSpan {
+    color: #d00;
+    font-weight: bold;
+}
+.apidocCodePre {
+    background: #eef;
+    border: 1px solid;
+    color: #777;
+    padding: 5px;
+    white-space: pre-wrap;
+}
+.apidocFooterDiv {
+    margin-top: 20px;
+    text-align: center;
+}
+.apidocModuleLi {
+    margin-top: 10px;
+}
+.apidocSectionDiv {
+    border-top: 1px solid;
+    margin-top: 20px;
+}
+.apidocSignatureSpan {
+    color: #777;
+    font-weight: bold;
+}
+</style>
+<h1>api documentation for
+    <a
+
+        href="https://github.com/mcollina/msgpack5"
+
+    >msgpack5 (v3.4.1)</a>
+</h1>
+<h4>A msgpack v5 implementation for node.js and the browser, with extension points</h4>
+<div class="apidocSectionDiv"><a
+    href="#apidoc.tableOfContents"
+    id="apidoc.tableOfContents"
+><h1>table of contents</h1></a><ol>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.msgpack5">module msgpack5</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.msgpack5.msgpack5">
+            function <span class="apidocSignatureSpan"></span>msgpack5
+            <span class="apidocSignatureSpan">(options)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.msgpack5.decoder">
+            function <span class="apidocSignatureSpan">msgpack5.</span>decoder
+            <span class="apidocSignatureSpan">(decodingTypes)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <span class="apidocSignatureSpan">object <span class="apidocSignatureSpan">msgpack5.</span>streams</span>
+
+        </li>
+
+    </ol></li>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.msgpack5.decoder">module msgpack5.decoder</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.msgpack5.decoder.decoder">
+            function <span class="apidocSignatureSpan">msgpack5.</span>decoder
+            <span class="apidocSignatureSpan">(decodingTypes)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.msgpack5.decoder.IncompleteBufferError">
+            function <span class="apidocSignatureSpan">msgpack5.decoder.</span>IncompleteBufferError
+            <span class="apidocSignatureSpan">(message)</span>
+            </a>
+
+        </li>
+
+    </ol></li>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.msgpack5.streams">module msgpack5.streams</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.msgpack5.streams.decoder">
+            function <span class="apidocSignatureSpan">msgpack5.streams.</span>decoder
+            <span class="apidocSignatureSpan">(opts)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.msgpack5.streams.encoder">
+            function <span class="apidocSignatureSpan">msgpack5.streams.</span>encoder
+            <span class="apidocSignatureSpan">(opts)</span>
+            </a>
+
+        </li>
+
+    </ol></li>
+
+</ol></div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.msgpack5" id="apidoc.module.msgpack5">module msgpack5</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.msgpack5.msgpack5" id="apidoc.element.msgpack5.msgpack5">
+        function <span class="apidocSignatureSpan"></span>msgpack5
+        <span class="apidocSignatureSpan">(options)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function msgpack(options) {
+  var encodingTypes = []
+  var decodingTypes = []
+
+  options = options || {
+    forceFloat64: false,
+    compatibilityMode: false
+  }
+
+  function registerEncoder (check, encode) {
+    assert(check, &#x27;must have an encode function&#x27;)
+    assert(encode, &#x27;must have an encode function&#x27;)
+
+    encodingTypes.push({
+      check: check, encode: encode
+    })
+
+    return this
+  }
+
+  function registerDecoder (type, decode) {
+    assert(type &#x3e;= 0, &#x27;must have a non-negative type&#x27;)
+    assert(decode, &#x27;must have a decode function&#x27;)
+
+    decodingTypes.push({
+      type: type, decode: decode
+    })
+
+    return this
+  }
+
+  function register (type, constructor, encode, decode) {
+    assert(constructor, &#x27;must have a constructor&#x27;)
+    assert(encode, &#x27;must have an encode function&#x27;)
+    assert(type &#x3e;= 0, &#x27;must have a non-negative type&#x27;)
+    assert(decode, &#x27;must have a decode function&#x27;)
+
+    function check (obj) {
+      return (obj instanceof constructor)
+    }
+
+    function reEncode (obj) {
+      var buf = bl()
+      var header = new Buffer(1)
+
+      header.writeInt8(type, 0)
+
+      buf.append(header)
+      buf.append(encode(obj))
+
+      return buf
+    }
+
+    this.registerEncoder(check, reEncode)
+    this.registerDecoder(type, decode)
+
+    return this
+  }
+
+  return {
+    encode: buildEncode(encodingTypes, options.forceFloat64, options.compatibilityMode),
+    decode: buildDecode(decodingTypes),
+    register: register,
+    registerEncoder: registerEncoder,
+    registerDecoder: registerDecoder,
+    encoder: streams.encoder,
+    decoder: streams.decoder,
+    // needed for levelup support
+    buffer: true,
+    type: &#x27;msgpack5&#x27;,
+    IncompleteBufferError: buildDecode.IncompleteBufferError
+  }
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+
+    <h2>
+        <a href="#apidoc.element.msgpack5.decoder" id="apidoc.element.msgpack5.decoder">
+        function <span class="apidocSignatureSpan">msgpack5.</span>decoder
+        <span class="apidocSignatureSpan">(decodingTypes)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function buildDecode(decodingTypes) {
+  return decode
+
+  function getSize (first) {
+    switch (first) {
+      case 0xc4:
+        return 2
+      case 0xc5:
+        return 3
+      case 0xc6:
+        return 5
+      case 0xc7:
+        return 3
+      case 0xc8:
+        return 4
+      case 0xc9:
+        return 6
+      case 0xca:
+        return 5
+      case 0xcb:
+        return 9
+      case 0xcc:
+        return 2
+      case 0xcd:
+        return 3
+      case 0xce:
+        return 5
+      case 0xcf:
+        return 9
+      case 0xd0:
+        return 2
+      case 0xd1:
+        return 3
+      case 0xd2:
+        return 5
+      case 0xd3:
+        return 9
+      case 0xd4:
+        return 3
+      case 0xd5:
+        return 4
+      case 0xd6:
+        return 6
+      case 0xd7:
+        return 10
+      case 0xd8:
+        return 18
+      case 0xd9:
+        return 2
+      case 0xda:
+        return 3
+      case 0xdb:
+        return 5
+      case 0xde:
+        return 3
+      default:
+        return -1
+    }
+  }
+
+  function hasMinBufferSize (first, length) {
+    var size = getSize(first)
+
+    if (size !== -1 &#x26;&#x26; length &#x3c; size) {
+      return false
+    } else {
+      return true
+    }
+  }
+
+  function isValidDataSize (dataLength, bufLength, headerLength) {
+    return bufLength &#x3e;= headerLength + dataLength
+  }
+
+  function buildDecodeResult (value, bytesConsumed) {
+    return {
+      value: value,
+      bytesConsumed: bytesConsumed
+    }
+  }
+
+  function decode (buf) {
+    if (!(buf instanceof bl)) {
+      buf = bl().append(buf)
+    }
+
+    var result = tryDecode(buf)
+    if (result) {
+      buf.consume(result.bytesConsumed)
+      return result.value
+    } else {
+      throw new IncompleteBufferError()
+    }
+  }
+
+  function tryDecode (buf, offset) {
+    offset = offset === undefined ? 0 : offset
+    var bufLength = buf.length - offset
+    if (bufLength &#x3c;= 0) {
+      return null
+    }
+
+    var first = buf.readUInt8(offset)
+    var length
+    var result = 0
+    var type
+    var bytePos
+
+    if (!hasMinBufferSize(first, bufLength)) {
+      return null
+    }
+
+    switch (first) {
+      case 0xc0:
+        return buildDecodeResult(null, 1)
+      case 0xc2:
+        return buildDecodeResult(false, 1)
+      case 0xc3:
+        return buildDecodeResult(true, 1)
+      case 0xcc:
+        // 1-byte unsigned int
+        result = buf.readUInt8(offset + 1)
+        return buildDecodeResult(result, 2)
+      case 0xcd:
+        // 2-bytes BE unsigned int
+        result = buf.readUInt16BE(offset + 1)
+        return buildDecodeResult(result, 3)
+      case 0xce:
+        // 4-bytes BE unsigned int
+        result = buf.readUInt32BE(offset + 1)
+        return buildDecodeResult(result, 5)
+      case 0xcf:
+        // 8-bytes BE unsigned int
+        // Read long byte by byte, big-endian
+        for (bytePos = 7; bytePos &#x3e;= 0; bytePos--) {
+          result += (buf.readUInt8(offset + bytePos + 1) * Math.pow(2, (8 * (7 - bytePos))))
+        }
+        return buildDecodeResult(result, 9)
+      case 0xd0:
+        // 1-byte signed int
+        result = buf.readInt8(offset + 1)
+        return buildDecodeResult(result, 2)
+      case 0xd1:
+        // 2-bytes signed int
+        result = buf.readInt16BE(offset + 1)
+        return buildDecodeResult(result, 3)
+      case 0xd2:
+        // 4-bytes signed int
+        result = buf.readInt32BE(offset + 1)
+        return buildDecodeResult(result, 5)
+      case 0xd3:
+        result = readInt64BE(buf.slice(offset + 1, offset + 9), 0)
+        return buildDecodeResult(result, 9)
+      case 0xca:
+        // 4-bytes float
+        result = buf.readFloatBE(offset + 1)
+        return buildDecodeResult(result, 5)
+      case 0xcb:
+        // 8-bytes double
+        result = buf.readDoubleBE(offset + 1)
+        return buildDecodeResult(result, 9)
+      case 0xd9:
+        // strings up to 2^8 - 1 bytes
+        length = buf.readUInt8(offset + 1)
+        if (!isValidDataSize(length, bufLength, 2)) {
+          return null
+        }
+        result = buf.toString(&#x27;utf8&#x27;, offset + 2, offset + 2 + length)
+        return buildDecodeResult(result, 2 + length)
+      case 0xda: ...</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+
+
+</div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.msgpack5.decoder" id="apidoc.module.msgpack5.decoder">module msgpack5.decoder</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.msgpack5.decoder.decoder" id="apidoc.element.msgpack5.decoder.decoder">
+        function <span class="apidocSignatureSpan">msgpack5.</span>decoder
+        <span class="apidocSignatureSpan">(decodingTypes)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function buildDecode(decodingTypes) {
+  return decode
+
+  function getSize (first) {
+    switch (first) {
+      case 0xc4:
+        return 2
+      case 0xc5:
+        return 3
+      case 0xc6:
+        return 5
+      case 0xc7:
+        return 3
+      case 0xc8:
+        return 4
+      case 0xc9:
+        return 6
+      case 0xca:
+        return 5
+      case 0xcb:
+        return 9
+      case 0xcc:
+        return 2
+      case 0xcd:
+        return 3
+      case 0xce:
+        return 5
+      case 0xcf:
+        return 9
+      case 0xd0:
+        return 2
+      case 0xd1:
+        return 3
+      case 0xd2:
+        return 5
+      case 0xd3:
+        return 9
+      case 0xd4:
+        return 3
+      case 0xd5:
+        return 4
+      case 0xd6:
+        return 6
+      case 0xd7:
+        return 10
+      case 0xd8:
+        return 18
+      case 0xd9:
+        return 2
+      case 0xda:
+        return 3
+      case 0xdb:
+        return 5
+      case 0xde:
+        return 3
+      default:
+        return -1
+    }
+  }
+
+  function hasMinBufferSize (first, length) {
+    var size = getSize(first)
+
+    if (size !== -1 &#x26;&#x26; length &#x3c; size) {
+      return false
+    } else {
+      return true
+    }
+  }
+
+  function isValidDataSize (dataLength, bufLength, headerLength) {
+    return bufLength &#x3e;= headerLength + dataLength
+  }
+
+  function buildDecodeResult (value, bytesConsumed) {
+    return {
+      value: value,
+      bytesConsumed: bytesConsumed
+    }
+  }
+
+  function decode (buf) {
+    if (!(buf instanceof bl)) {
+      buf = bl().append(buf)
+    }
+
+    var result = tryDecode(buf)
+    if (result) {
+      buf.consume(result.bytesConsumed)
+      return result.value
+    } else {
+      throw new IncompleteBufferError()
+    }
+  }
+
+  function tryDecode (buf, offset) {
+    offset = offset === undefined ? 0 : offset
+    var bufLength = buf.length - offset
+    if (bufLength &#x3c;= 0) {
+      return null
+    }
+
+    var first = buf.readUInt8(offset)
+    var length
+    var result = 0
+    var type
+    var bytePos
+
+    if (!hasMinBufferSize(first, bufLength)) {
+      return null
+    }
+
+    switch (first) {
+      case 0xc0:
+        return buildDecodeResult(null, 1)
+      case 0xc2:
+        return buildDecodeResult(false, 1)
+      case 0xc3:
+        return buildDecodeResult(true, 1)
+      case 0xcc:
+        // 1-byte unsigned int
+        result = buf.readUInt8(offset + 1)
+        return buildDecodeResult(result, 2)
+      case 0xcd:
+        // 2-bytes BE unsigned int
+        result = buf.readUInt16BE(offset + 1)
+        return buildDecodeResult(result, 3)
+      case 0xce:
+        // 4-bytes BE unsigned int
+        result = buf.readUInt32BE(offset + 1)
+        return buildDecodeResult(result, 5)
+      case 0xcf:
+        // 8-bytes BE unsigned int
+        // Read long byte by byte, big-endian
+        for (bytePos = 7; bytePos &#x3e;= 0; bytePos--) {
+          result += (buf.readUInt8(offset + bytePos + 1) * Math.pow(2, (8 * (7 - bytePos))))
+        }
+        return buildDecodeResult(result, 9)
+      case 0xd0:
+        // 1-byte signed int
+        result = buf.readInt8(offset + 1)
+        return buildDecodeResult(result, 2)
+      case 0xd1:
+        // 2-bytes signed int
+        result = buf.readInt16BE(offset + 1)
+        return buildDecodeResult(result, 3)
+      case 0xd2:
+        // 4-bytes signed int
+        result = buf.readInt32BE(offset + 1)
+        return buildDecodeResult(result, 5)
+      case 0xd3:
+        result = readInt64BE(buf.slice(offset + 1, offset + 9), 0)
+        return buildDecodeResult(result, 9)
+      case 0xca:
+        // 4-bytes float
+        result = buf.readFloatBE(offset + 1)
+        return buildDecodeResult(result, 5)
+      case 0xcb:
+        // 8-bytes double
+        result = buf.readDoubleBE(offset + 1)
+        return buildDecodeResult(result, 9)
+      case 0xd9:
+        // strings up to 2^8 - 1 bytes
+        length = buf.readUInt8(offset + 1)
+        if (!isValidDataSize(length, bufLength, 2)) {
+          return null
+        }
+        result = buf.toString(&#x27;utf8&#x27;, offset + 2, offset + 2 + length)
+        return buildDecodeResult(result, 2 + length)
+      case 0xda: ...</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+
+    <h2>
+        <a href="#apidoc.element.msgpack5.decoder.IncompleteBufferError" id="apidoc.element.msgpack5.decoder.IncompleteBufferError">
+        function <span class="apidocSignatureSpan">msgpack5.decoder.</span>IncompleteBufferError
+        <span class="apidocSignatureSpan">(message)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function IncompleteBufferError(message) {
+  Error.call(this) // super constructor
+  if (Error.captureStackTrace) {
+    Error.captureStackTrace(this, this.constructor) // super helper method to include stack trace in error object
+  }
+  this.name = this.constructor.name
+  this.message = message || &#x27;unable to decode&#x27;
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+</div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.msgpack5.streams" id="apidoc.module.msgpack5.streams">module msgpack5.streams</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.msgpack5.streams.decoder" id="apidoc.element.msgpack5.streams.decoder">
+        function <span class="apidocSignatureSpan">msgpack5.streams.</span>decoder
+        <span class="apidocSignatureSpan">(opts)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function Decoder(opts) {
+  if (!(this instanceof Decoder)) {
+    opts = opts || {}
+    opts.msgpack = this
+    return new Decoder(opts)
+  }
+
+  Base.call(this, opts)
+
+  this._chunks = bl()
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+
+    <h2>
+        <a href="#apidoc.element.msgpack5.streams.encoder" id="apidoc.element.msgpack5.streams.encoder">
+        function <span class="apidocSignatureSpan">msgpack5.streams.</span>encoder
+        <span class="apidocSignatureSpan">(opts)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">function Encoder(opts) {
+  if (!(this instanceof Encoder)) {
+    opts = opts || {}
+    opts.msgpack = this
+    return new Encoder(opts)
+  }
+
+  Base.call(this, opts)
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+</div>
+
+<div class="apidocFooterDiv">
+    [ this document was created with
+    <a href="https://github.com/kaizhu256/node-utility2" target="_blank">utility2</a>
+    ]
+</div>
+</div>
